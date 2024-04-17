@@ -1,8 +1,6 @@
-from django.db import models
+from mongoengine import IntField, StringField
+from restfulApiDjango.utils import TimestampedDocument
 
-class User(models.Model):
-    id = models.AutoField(auto_created=True, primary_key=True)
-    email = models.EmailField(unique=True)
-    name = models.CharField(max_length=100)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+class User(TimestampedDocument):
+    name = StringField(required=True)
+    age = IntField(required=True)

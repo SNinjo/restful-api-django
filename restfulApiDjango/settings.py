@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_mongoengine',
+    'drf_yasg',
     'rest_framework',
     'users',
 ]
@@ -81,15 +81,13 @@ WSGI_APPLICATION = 'restfulApiDjango.wsgi.application'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
-MONGODB_DATABASES = {
-    "default": {
-        "name": "mongo",
-        "host": "127.0.0.1",
-        "username": "root",
-        "password": "pass",
-        "tz_aware": True,
-    },
+DATABASES = {
+    'default': {
+        'ENGINE' : 'django.db.backends.dummy'
+    }
 }
+from mongoengine import connect
+connect(host='mongodb://root:pass@127.0.0.1:27017/restfulApi?authSource=admin')
 
 
 # Password validation

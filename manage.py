@@ -6,7 +6,8 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'restfulApiDjango.settings')
+    settings = 'restfulApiDjango.settings_test' if 'test' in sys.argv else 'restfulApiDjango.settings'
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', settings)
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
