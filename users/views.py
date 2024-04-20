@@ -1,3 +1,4 @@
+from typing import Optional
 from django.http import JsonResponse
 from rest_framework.generics import GenericAPIView
 from rest_framework import status
@@ -40,13 +41,28 @@ swagger_response = {
     )
 }
 
+def get_user(id: str) -> Optional[User]:
+    return User.objects(id=id).first() # type: ignore
+
 class UsersView(GenericAPIView):
     serializer_class = UserSerializer
 
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                name='id',
+                in_=openapi.IN_QUERY,
+                type=openapi.TYPE_STRING,
+            )
+        ],
+    )
     def get(self, request, *args, **kwargs):
-        users = User.objects().all() # type: ignore
-        users_serializer = self.serializer_class(users, many=True)
-        return JsonResponse(users_serializer.data, safe=False)
+        user = get_user(request.query_params['id'])
+        if user:
+            users_serializer = self.serializer_class(user)
+            return JsonResponse(users_serializer.data, safe=False)
+        else:
+            return JsonResponse(None, safe=False)
 
     @swagger_auto_schema(
         request_body=swagger_request_body,
@@ -73,7 +89,7 @@ class UsersView(GenericAPIView):
         responses=swagger_response
     )
     def patch(self, request, *args, **kwargs):
-        user = User.objects(id=request.query_params['id']).first() # type: ignore
+        user = get_user(request.query_params['id'])
         if user:
             try:
                 serializer = self.serializer_class(user, data=request.data, partial=True)
@@ -97,7 +113,7 @@ class UsersView(GenericAPIView):
         responses=swagger_response
     )
     def put(self, request, *args, **kwargs):
-        user = User.objects(id=request.query_params['id']).first() # type: ignore
+        user = get_user(request.query_params['id'])
         if user:
             try:
                 serializer = self.serializer_class(user, data=request.data)
@@ -120,7 +136,7 @@ class UsersView(GenericAPIView):
         responses=swagger_response
     )
     def delete(self, request, *args, **kwargs):
-        user = User.objects(id=request.query_params['id']).first() # type: ignore
+        user = get_user(request.query_params['id'])
         if user:
             users_serializer = self.serializer_class(user)
             user.delete()

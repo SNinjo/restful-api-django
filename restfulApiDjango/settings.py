@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -87,7 +90,7 @@ DATABASES = {
     }
 }
 from mongoengine import connect
-connect(host='mongodb://root:pass@127.0.0.1:27017/restfulApi?authSource=admin')
+connect(host=os.environ.get('MONGO_URL'))
 
 
 # Password validation

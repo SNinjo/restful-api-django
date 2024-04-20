@@ -11,7 +11,7 @@ class TestUsersView(SimpleTestCase):
     def tearDownClass(cls):
         User.drop_collection()
 
-    fakeObjectid = '012345678901234567890123'
+    fake_user_id = '012345678901234567890123'
 
     def has_error_in_response(self, response: HttpResponse) -> bool:
         return 'error' in response.json()
@@ -34,7 +34,6 @@ class TestUsersView(SimpleTestCase):
             user.save()
     
     def is_all_users_in_database(self, users: List[User]) -> bool:
-        self.client.get('/users/')
         userObjects = User.objects().all() # type: ignore
         if len(users) != len(userObjects):
             return False
@@ -46,35 +45,43 @@ class TestUsersView(SimpleTestCase):
     
 class TestGetMethod(TestUsersView):
 
-    def test_get(self):
+    def test_normal(self):
         users = [
             User(name='jo', age=20),
             User(name='alan', age=21),
         ]
         self.create_users_to_database(users)
 
-        response = self.client.get('/users/')
+        response = self.client.get(f'/users/?id={users[0].id}') # type: ignore
         self.assertEqual(response.status_code, 200)
         users = response.json()
-        self.assertTrue(self.is_user_valid(users[0], 'jo', 20))
-        self.assertTrue(self.is_user_valid(users[1], 'alan', 21))
+        self.assertTrue(self.is_user_valid(response.json(), 'jo', 20))
 
-    def test_get_safe(self):
+    def test_safe(self):
         users = [
             User(name='jo', age=20),
             User(name='alan', age=21),
         ]
         self.create_users_to_database(users)
 
-        self.client.get('/users/')
+        self.client.get(f'/users/?id={users[0].id}') # type: ignore
         self.assertTrue(self.is_all_users_in_database(users))
         
-        self.client.get('/users/')
+        self.client.get(f'/users/?id={users[0].id}') # type: ignore
         self.assertTrue(self.is_all_users_in_database(users))
+
+    def test_fake_user_id(self):
+        user = User(name='jo', age=20)
+        user.save()
+
+        response = self.client.get(f'/users/?id={self.fake_user_id}')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), None)
+        self.assertTrue(self.is_all_users_in_database([user]))
 
 class TestPostMethod(TestUsersView):
 
-    def test_post_normal(self):
+    def test_normal(self):
         response = self.client.post('/users/', {
             'name': 'jo',
             'age': 20,
@@ -86,18 +93,22 @@ class TestPostMethod(TestUsersView):
         ]))
         
         response = self.client.post('/users/', {
+            '_id': self.fake_user_id,
+            'id': self.fake_user_id,
+            'fake': 'fake',
             'name': 'alan',
             'age': 21,
-            'fake': True,
         })
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(self.is_user_valid(response.json(), 'alan', 21))
+        data = response.json()
+        self.assertNotEqual(data['id'], self.fake_user_id)
+        self.assertTrue(self.is_user_valid(data, 'alan', 21))
         self.assertTrue(self.is_all_users_in_database([
             User(name='jo', age=20),
             User(name='alan', age=21),
         ]))
         
-    def test_post_wrong_parameters(self):
+    def test_wrong_parameters(self):
         response = self.client.post('/users/', {
         })
         self.assertTrue(self.has_error_in_response(response))
@@ -124,30 +135,35 @@ class TestPostMethod(TestUsersView):
 
 class TestPatchMethod(TestUsersView):
 
-    def test_patch_normal(self):
+    def test_normal(self):
         user = User(name='jo', age=20)
         user.save()
 
         response = self.client.patch(f'/users/?id={user.id}', { # type: ignore
             'name': 'alan',
+            'age': 22,
         }, content_type='application/json')
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(self.is_user_valid(response.json(), 'alan', 20))
+        self.assertTrue(self.is_user_valid(response.json(), 'alan', 22))
         self.assertTrue(self.is_all_users_in_database([
-            User(name='alan', age=20),
+            User(name='alan', age=22),
         ]))
 
         response = self.client.patch(f'/users/?id={user.id}', { # type: ignore
+            '_id': self.fake_user_id,
+            'id': self.fake_user_id,
+            'fake': 'fake',
             'age': 21,
-            'fake': None,
         }, content_type='application/json')
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(self.is_user_valid(response.json(), 'alan', 21))
+        data = response.json()
+        self.assertNotEqual(data['id'], self.fake_user_id)
+        self.assertTrue(self.is_user_valid(data, 'alan', 21))
         self.assertTrue(self.is_all_users_in_database([
             User(name='alan', age=21),
         ]))
         
-    def test_patch_empty_parameters(self):
+    def test_empty_parameters(self):
         user = User(name='jo', age=20)
         user.save()
 
@@ -156,11 +172,13 @@ class TestPatchMethod(TestUsersView):
         self.assertTrue(self.has_error_in_response(response))
         self.assertTrue(self.is_all_users_in_database([user]))
         
-    def test_patch_fake_user_id(self):
+    def test_fake_user_id(self):
         user = User(name='jo', age=20)
         user.save()
 
-        response = self.client.patch(f'/users/?id={self.fakeObjectid}', { # type: ignore
+        response = self.client.patch(f'/users/?id={self.fake_user_id}', { # type: ignore
+            'name': 'alan',
+            'age': 21,
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), None)
@@ -168,7 +186,7 @@ class TestPatchMethod(TestUsersView):
 
 class TestPutMethod(TestUsersView):
 
-    def test_put_normal(self):
+    def test_normal(self):
         user = User(name='jo', age=20)
         user.save()
 
@@ -183,17 +201,21 @@ class TestPutMethod(TestUsersView):
         ]))
         
         response = self.client.put(f'/users/?id={user.id}', { # type: ignore
+            '_id': self.fake_user_id,
+            'id': self.fake_user_id,
+            'fake': 'fake',
             'name': 'alan',
             'age': 21,
-            'fake': None
         }, content_type='application/json')
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(self.is_user_valid(response.json(), 'alan', 21))
+        data = response.json()
+        self.assertNotEqual(data['id'], self.fake_user_id)
+        self.assertTrue(self.is_user_valid(data, 'alan', 21))
         self.assertTrue(self.is_all_users_in_database([
             User(name='alan', age=21),
         ]))
         
-    def test_put_idempotent(self):
+    def test_idempotent(self):
         users = [
             User(name='jo', age=20),
             User(name='alan', age=21),
@@ -218,12 +240,11 @@ class TestPutMethod(TestUsersView):
             User(name='alan', age=21),
         ]))
 
-    def test_put_wrong_parameters(self):
+    def test_wrong_parameters(self):
         user = User(name='jo', age=20)
         user.save()
 
         response = self.client.put(f'/users/?id={user.id}', { # type: ignore
-            'name': 'alan',
         }, content_type='application/json')
         self.assertTrue(self.has_error_in_response(response))
         self.assertTrue(self.is_all_users_in_database([user]))
@@ -241,11 +262,11 @@ class TestPutMethod(TestUsersView):
         self.assertTrue(self.has_error_in_response(response))
         self.assertTrue(self.is_all_users_in_database([user]))
         
-    def test_put_fake_user_id(self):
+    def test_fake_user_id(self):
         user = User(name='jo', age=20)
         user.save()
 
-        response = self.client.put(f'/users/?id={self.fakeObjectid}', { # type: ignore
+        response = self.client.put(f'/users/?id={self.fake_user_id}', { # type: ignore
             'name': 'alan',
             'age': 21,
         }, content_type='application/json')
@@ -255,7 +276,7 @@ class TestPutMethod(TestUsersView):
 
 class TestDeleteMethod(TestUsersView):
 
-    def test_delete_normal(self):
+    def test_normal(self):
         user = User(name='jo', age=20)
         user.save()
 
@@ -264,7 +285,7 @@ class TestDeleteMethod(TestUsersView):
         self.assertTrue(self.is_user_valid(response.json(), 'jo', 20))
         self.assertTrue(self.is_all_users_in_database([]))
 
-    def test_delete_idempotent(self):
+    def test_idempotent(self):
         users = [
             User(name='jo', age=20),
             User(name='alan', age=21),
@@ -277,11 +298,11 @@ class TestDeleteMethod(TestUsersView):
         self.client.delete(f'/users/?id={users[0].id}') # type: ignore
         self.assertTrue(self.is_all_users_in_database([users[1]]))
         
-    def test_put_fake_user_id(self):
+    def test_fake_user_id(self):
         user = User(name='jo', age=20)
         user.save()
 
-        response = self.client.delete(f'/users/?id={self.fakeObjectid}') # type: ignore
+        response = self.client.delete(f'/users/?id={self.fake_user_id}') # type: ignore
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), None)
         self.assertTrue(self.is_all_users_in_database([user]))

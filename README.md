@@ -1,22 +1,35 @@
-# restful-api-django
+# restful-api-django &middot; ![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen)
 
-A RESTful API server included...
+A RESTful API server includes
 
-1. Framework: Django
-2. OpenAPI: Swagger
-3. Database: MongoDB
-4. ORM: MongoEngine
-5. Test: Pytest
+* Framework: Django
+* OpenAPI: Swagger
+* Database: MongoDB
+* ORM: MongoEngine
+* Test: Pytest
+* Environment: Docker
+* Deployment: Docker Compose
 
 ## Usage
 
-### Start
+### Build Database
+
+```shell
+docker-compose up -d mongo mongo-express
+```
+
+[Mongo Express](http://localhost:8081)
+
+* username: root
+* password: pass
+
+### Develop
 
 ```shell
 python manage.py runserver
 ```
 
-[Swagger](https://localhost:8000/swagger)
+[Swagger](http://localhost:8000/swagger)
 
 ### Test
 
@@ -28,5 +41,12 @@ python manage.py test
 
 ```shell
 coverage run --source='.' manage.py test
-coverage report
+coverage report -m
+```
+
+### Deploy
+
+```shell
+docker build . -t restful-api-django
+docker-compose up -d
 ```
