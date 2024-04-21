@@ -90,7 +90,7 @@ DATABASES = {
     }
 }
 from mongoengine import connect
-connect(host=os.environ.get('MONGO_URL'))
+connect(host=os.environ.get('MONGO_URI'))
 
 
 # Password validation

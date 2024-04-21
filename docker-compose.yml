@@ -38,7 +38,7 @@ services:
         networks:
             - api
         environment:
-            MONGO_URL: mongodb://root:pass@mongo:27017/restfulApi?authSource=admin
+            MONGO_URI: mongodb://root:pass@mongo:27017/restfulApi?authSource=admin
 networks:
     api:
     mongo:
